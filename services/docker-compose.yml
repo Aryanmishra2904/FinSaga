@@ -2,7 +2,6 @@ services:
 
   account-db:
     image: postgres:17
-
     container_name: account-db
 
     environment:
@@ -23,9 +22,25 @@ services:
       retries: 5
 
 
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+
   account-service:
     build:
-      context: ./services/account_Services
+      context: ./account_Services
       dockerfile: Dockerfile
 
     container_name: account-service
@@ -34,13 +49,18 @@ services:
       - "3001:3001"
 
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@account-db:5432/account_db
       PORT: 3001
+      DATABASE_URL: postgresql://postgres:postgres@account-db:5432/account_db
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
 
     depends_on:
       account-db:
         condition: service_healthy
 
+      rabbitmq:
+        condition: service_started
+
 
 volumes:
   account-db-data:
+  rabbitmq-data:
